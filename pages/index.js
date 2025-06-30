@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 const GanttRouteChart = () => {
     const [zoomLevel, setZoomLevel] = useState(0);
     const [timeLabels, setTimeLabels] = useState([]);
+    const [hoverLabel, setHoverLabel] = useState(null);
+    const [hoverPos, setHoverPos] = useState(null);
 
     const sampleData = {
         routes: [
@@ -50,7 +52,7 @@ const GanttRouteChart = () => {
         { label: "5 Minutes", gapMins: 5, width: 7200 }
     ];
 
-    const timelineStartOffset = 2; // 2% extra margin before 12:00 AM
+    const timelineStartOffset = 2;
     const totalMinutes = 24 * 60;
     const timelineWidth = zoomConfigs[zoomLevel].width;
 
@@ -96,26 +98,104 @@ const GanttRouteChart = () => {
 
     return (
         <div style={{ maxWidth: '100%', padding: '20px' }}>
-            <div style={{ marginBottom: '20px' }}>
-                Time Scale:
-                {zoomConfigs.map((cfg, index) => (
-                    <button
-                        key={index}
-                        onClick={() => setZoomLevel(index)}
-                        style={{
-                            margin: '0 4px',
-                            fontWeight: zoomLevel === index ? 'bold' : 'normal'
-                        }}
-                    >
-                        {cfg.label}
-                    </button>
-                ))}
-                <button onClick={() => setZoomLevel(Math.max(0, zoomLevel - 1))}>-</button>
-                <button onClick={() => setZoomLevel(Math.min(zoomConfigs.length - 1, zoomLevel + 1))}>+</button>
+            <div style={{ display: 'flex', alignItems: 'center', margin: '40px 0' }}>
+                <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#444', marginRight: '12px', whiteSpace: 'nowrap' }}>
+                    Timeline:
+                </div>
+
+                <div style={{
+                    position: 'relative',
+                    height: '30px',
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                }}>
+                    <div style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '0',
+                        right: '0',
+                        height: '4px',
+                        background: '#ddd',
+                        borderRadius: '2px',
+                        zIndex: 1
+                    }} />
+
+                    {zoomConfigs.map((cfg, idx) => {
+                        const isSelected = idx === zoomLevel;
+                        return (
+                            <div
+                                key={idx}
+                                onMouseEnter={() => {
+                                    setHoverLabel(cfg.label);
+                                    setHoverPos((idx / 8) * 100);
+                                }}
+                                onMouseLeave={() => {
+                                    setHoverLabel(null);
+                                    setHoverPos(null);
+                                }}
+                                onClick={() => setZoomLevel(idx)}
+                                style={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: `${(idx / 8) * 100}%`,
+                                    transform: 'translate(-50%, -50%)',
+                                    width: isSelected ? '4px' : '2px',
+                                    height: isSelected ? '16px' : '12px',
+                                    backgroundColor: isSelected ? '#333' : '#aaa',
+                                    zIndex: 2,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease-in-out'
+                                }}
+                            />
+                        );
+                    })}
+
+                    <div style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: `${(zoomLevel / (zoomConfigs.length - 1)) * 100}%`,
+                        transform: 'translate(-50%, -50%)',
+                        width: '14px',
+                        height: '20px',
+                        backgroundColor: '#fff',
+                        borderRadius: '4px',
+                        border: '1px solid #ccc',
+                        boxShadow: '0 0 3px rgba(0,0,0,0.3)',
+                        zIndex: 3
+                    }} />
+
+                    {hoverLabel && (
+                        <div style={{
+                            position: 'absolute',
+                            top: '-30px',
+                            left: `${hoverPos}%`,
+                            transform: 'translateX(-50%)',
+                            backgroundColor: '#333',
+                            color: '#fff',
+                            padding: '4px 8px',
+                            fontSize: '12px',
+                            borderRadius: '4px',
+                            whiteSpace: 'nowrap',
+                            zIndex: 5
+                        }}>
+                            {hoverLabel}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+
+            <div style={{
+                marginTop: '8px',
+                textAlign: 'center',
+                fontSize: '14px',
+                color: '#555'
+            }}>
+                Time period selected: <strong>{zoomConfigs[zoomLevel].label}</strong>
             </div>
 
             <div style={{ display: 'flex' }}>
-                {/* Sidebar for Route Labels */}
                 <div style={{ width: '120px', marginTop: '100px' }}>
                     {sampleData.routes.map((route) => (
                         <div key={route.id} style={{ height: '80px', marginBottom: '20px', display: 'flex', alignItems: 'center' }}>
@@ -124,7 +204,6 @@ const GanttRouteChart = () => {
                     ))}
                 </div>
 
-                {/* Scrollable Timeline */}
                 <div
                     style={{
                         overflowX: 'auto',
@@ -135,22 +214,14 @@ const GanttRouteChart = () => {
                         width: '100%'
                     }}
                 >
-                    <div
-                        style={{
-                            width: `${timelineWidth}px`,
-                            position: 'relative'
-                        }}
-                    >
-                        {/* Time Labels */}
-                        <div
-                            style={{
-                                position: 'absolute',
-                                top: '-60px',
-                                height: '60px',
-                                width: '100%',
-                                zIndex: 10
-                            }}
-                        >
+                    <div style={{ width: `${timelineWidth}px`, position: 'relative' }}>
+                        <div style={{
+                            position: 'absolute',
+                            top: '-60px',
+                            height: '60px',
+                            width: '100%',
+                            zIndex: 10
+                        }}>
                             {timeLabels.map((label, idx) => (
                                 <div
                                     key={`label-${idx}`}
@@ -169,7 +240,6 @@ const GanttRouteChart = () => {
                             ))}
                         </div>
 
-                        {/* Vertical Lines */}
                         {timeLabels.map((label, idx) => (
                             <div
                                 key={`line-${idx}`}
@@ -185,7 +255,6 @@ const GanttRouteChart = () => {
                             />
                         ))}
 
-                        {/* Route Bars */}
                         {sampleData.routes.map((route) => (
                             <div
                                 key={route.id}
@@ -204,7 +273,6 @@ const GanttRouteChart = () => {
                                         borderRadius: '4px'
                                     }}
                                 >
-                                    {/* Connecting Line */}
                                     {(() => {
                                         const firstStop = route.route[0];
                                         const lastStop = route.route[route.route.length - 1];
@@ -226,21 +294,8 @@ const GanttRouteChart = () => {
                                         );
                                     })()}
 
-                                    {/* Stops */}
                                     {route.route.map((stop) => {
                                         const pos = calculateBarPosition(stop.start_time, stop.end_time);
-                                        const startMin = timeToMinutes(stop.start_time);
-                                        const endMin = timeToMinutes(stop.end_time);
-
-                                        const isOverlapping = sampleData.routes.some(otherRoute =>
-                                            otherRoute.route.some(otherStop => {
-                                                if (otherRoute.id === route.id && otherStop.seq === stop.seq) return false;
-                                                const otherStart = timeToMinutes(otherStop.start_time);
-                                                const otherEnd = timeToMinutes(otherStop.end_time);
-                                                return (startMin < otherEnd && endMin > otherStart);
-                                            })
-                                        );
-
                                         return (
                                             <div
                                                 key={`${route.id}-${stop.seq}`}
